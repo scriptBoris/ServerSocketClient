@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Server.Models;
+using System.Runtime.Serialization.Json;
 
 namespace Client
 {
@@ -24,12 +25,12 @@ namespace Client
         //public StringBuilder String = new StringBuilder();
 
         public readonly string url;
-        public readonly int    port;
+        public readonly int port;
 
-        private bool          _enabled = true;
-        private TcpClient     _server;
+        private bool _enabled = true;
+        private TcpClient _server;
         private NetworkStream _stream;
-        private Thread        _thread;
+        private Thread _thread;
 
         //private Socket    _socket;
 
@@ -55,16 +56,26 @@ namespace Client
             //Console.ReadLine();
         }
 
-        private void EventSimple(string input)
+        private void EventSimple(Message msg)
         {
-            if (input == "_reg")
+            if (msg.Name == "Server")
             {
-                SendMessage(user.name);
-                return;
+                if (msg.Text == "_reg")
+                {
+                    var msgOut = new Message
+                    {
+                        Name = user.name,
+                        Text = user.name,
+                    };
+                    SendMessage(msgOut);
+                    return;
+                }
+                else
+                    Console.WriteLine("Server say: " + msg.Text);
             }
             else
             {
-                Console.WriteLine("Server say: " + input);
+                Console.WriteLine(msg.Name + ": " + msg.Text);
             }
             //else if (input == "Server say: ")
             //{
@@ -79,6 +90,12 @@ namespace Client
             _server.Client.Send(buffer);
             ///_stream.Write(buffer, 0, text.Length);
         }
+        public void SendMessage(Message msg)
+        {
+            var json = new DataContractJsonSerializer(typeof(Message));
+            json.WriteObject(_stream, msg);
+            //byte[] buffer = new byte[json.Length];
+        }
 
         public void DataEngine()
         {
@@ -92,7 +109,14 @@ namespace Client
 
                     Array.Copy(buffer, 0, incommingData, 0, length);
                     string serverMessage = Encoding.ASCII.GetString(incommingData);
-                    EventSimple(serverMessage);
+
+                    var msg = new Message();
+                    var ms = new MemoryStream(Encoding.ASCII.GetBytes(serverMessage));
+                    var ser = new DataContractJsonSerializer(msg.GetType());
+                    msg = ser.ReadObject(ms) as Message;
+
+                    EventSimple(msg);
+
                     //Console.WriteLine("Server say: " + serverMessage);
                 }
             }

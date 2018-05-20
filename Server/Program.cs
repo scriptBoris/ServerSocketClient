@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Server.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,36 +18,36 @@ namespace Server
 
 
             string input = Console.ReadLine();
-            while(input != "qq")
+            while (input != "qq")
             {
+                var msg = new Message { Name = "Server", };
                 var split = input.Split('_');
-                if (split != null && split.Length>=2)
+
+                if (split != null && split.Length >= 2)
                 {
                     try
                     {
-                        string msg = "";
-                        for (int i = 1; i <= split.Length - 1; i++) msg += split[i] + " ";
-                        var receiver = sv.connects.Find(x => x.name == split[0]);
+                        var receiver = Server.connects.Find(x => x.name == split[0]);
+
+                        msg.Receiver = receiver.name;
+                        msg.Text = split[1];
+
                         receiver.SendMessage(msg);
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Error: " + ex.Message);
+                        Console.WriteLine("Not found user: " + split[0]);
                     }
                 }
                 else
                 {
-                    //try
-                    //{
-                    //    string msg = "";
-                    //    for (int i = 1; i <= split.Length - 1; i++) msg += split[i] + " ";
-                    //    var receiver = sv.connects.Find(x => x.name == split[0]);
-                    //    receiver.SendMessage(msg);
-                    //}
-                    //catch (Exception ex)
-                    //{
-                    //    Console.WriteLine("Error: " + ex.Message);
-                    //}
+                    msg.Text = input;
+                    foreach (var cl in Server.connects)
+                    {
+                        if (cl.name == null)
+                            continue;
+                        cl.SendMessage(msg);
+                    }
                 }
                 //var connect = sv.connects[0];
                 //sv.SendMessage(connect.tcpClient, input);

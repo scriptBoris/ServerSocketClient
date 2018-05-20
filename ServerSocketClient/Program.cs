@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Server.Models;
 
 namespace Client
 {
@@ -28,14 +29,22 @@ namespace Client
                 input = Console.ReadLine();
                 while (input != "qq")
                 {
-                    //if (connect.request == RequestType.Name)
-                    //{
-                    //    connect.SendMessage(input);
-                    //}
-                    //buffer = Encoding.ASCII.GetBytes(input);
-                    //connect.socket.Send(buffer);
+                    var message = new Message { Name = user.name };
 
-                    connect.SendMessage(input);
+                    var split = input.Split('_');
+
+                    if (split != null  &&  split.Length > 1)
+                    {
+                        message.Receiver = split[0];
+                        message.Text = split[1];
+                        connect.SendMessage(message);
+                    }
+                    else
+                    {
+                        message.Text = input;
+                        connect.SendMessage(message);
+                    }
+
                     input = Console.ReadLine();
                 }
             }

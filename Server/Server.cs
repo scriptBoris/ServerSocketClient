@@ -6,13 +6,14 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using Server.Models;
 
 namespace Server
 {
     public class Server
     {
         public TcpListener listener;
-        public List<Connect> connects = new List<Connect>();
+        public static List<Connect> connects = new List<Connect>();
 
         private bool   _enabled = true;
         private Thread _thread;
@@ -47,13 +48,13 @@ namespace Server
             //_thread.Abort();
         }
 
-        public void SendMessage(TcpClient client, string text)
-        {
-            byte[] buffer = new byte[text.Length];
-            buffer = Encoding.ASCII.GetBytes(text);
+        //public void SendMessage(TcpClient client, string text)
+        //{
+        //    byte[] buffer = new byte[text.Length];
+        //    buffer = Encoding.ASCII.GetBytes(text);
 
-            client.Client.Send(buffer);
-        }
+        //    client.Client.Send(buffer);
+        //}
 
         private void RegisterEngine()
         {
@@ -62,7 +63,12 @@ namespace Server
                 var client = listener.AcceptTcpClient();
                 var connect = new Connect(client);
 
-                SendMessage(client, "_reg");
+                var msg = new Message
+                {
+                    Name = "Server",
+                    Text = "_reg",
+                };
+                connect.SendMessage(msg);
 
                 connects.Add(connect);
             }

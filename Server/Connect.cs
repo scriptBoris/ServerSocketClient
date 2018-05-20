@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
+using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Server.Models;
 
 namespace Server
 {
@@ -29,7 +31,7 @@ namespace Server
             tcpClient = client;
             _stream = client.GetStream();
 
-            _thread = new Thread(QueueEngine);
+            _thread = new Thread(GetDataEngine);
             _thread.Start();
         }
 
@@ -39,22 +41,48 @@ namespace Server
             buffer = Encoding.ASCII.GetBytes(text);
             tcpClient.Client.Send(buffer);
         }
-
-        private void EventSimple(string text)
+        public void SendMessage(Message msg)
         {
+            var json = new DataContractJsonSerializer(typeof(Message));
+            json.WriteObject(_stream, msg);
+        }
+
+        private void EventSimple(Message msg)
+        {
+            // Register connect
             if (response == ResponseTypes.Name)
             {
-                name = text;
+                name = msg.Text;
                 response = ResponseTypes.Message;
                 Console.WriteLine("New connected user: " + name);
             }
             else
             {
-                Console.WriteLine(name + ": " + text);
+                if (msg.Receiver!=null)
+                {
+                    try
+                    {
+                        var receiver = Server.connects.Find(x => x.name == msg.Receiver);
+                        receiver.SendMessage(msg);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Not found user: " + msg.Receiver);
+                    }
+                }
+                else
+                {
+                    foreach (var cl in Server.connects)
+                    {
+                        if (cl.name == null || cl.name == msg.Name)
+                            continue;
+                        cl.SendMessage(msg);
+                    }
+                }
             }
         }
 
-        private void QueueEngine()
+        private void GetDataEngine()
         {
             int length;
             byte[] buffer = new byte[1024];
@@ -67,10 +95,16 @@ namespace Server
                     var incommingData = new byte[length];
                     Array.Copy(buffer, 0, incommingData, 0, length);
 
-                    // Convert byte array to string message. 		
+                    //// Convert byte array to string message. 		
                     string clientMessage = Encoding.ASCII.GetString(incommingData);
-                    EventSimple(clientMessage);
-                    //Console.WriteLine($"Client message: {clientMessage}");
+                    var msg = new Message();
+                    var ms = new MemoryStream(Encoding.ASCII.GetBytes(clientMessage) );
+                    var ser = new DataContractJsonSerializer(msg.GetType());
+                    msg = ser.ReadObject(ms) as Message;
+
+                    EventSimple(msg);
+
+                    //Console.WriteLine("Name: "+msg.Name+" Send: "+msg.Text);
                 }
             }
         }
