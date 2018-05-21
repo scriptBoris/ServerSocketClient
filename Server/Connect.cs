@@ -49,37 +49,30 @@ namespace Server
 
         private void EventSimple(Message msg)
         {
-            // Register connect
-            if (response == ResponseTypes.Name)
+
+            if (msg.Receiver != "")
             {
-                name = msg.Text;
-                response = ResponseTypes.Message;
-                Console.WriteLine("New connected user: " + name);
+                try
+                {
+                    var receiver = Server.connects.Find(x => x.name == msg.Receiver);
+                    receiver.SendMessage(msg);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Not found user: " + msg.Receiver);
+                }
             }
             else
             {
-                if (msg.Receiver!=null)
+                Console.WriteLine(msg.Name+": "+msg.Text);
+                foreach (var cl in Server.connects)
                 {
-                    try
-                    {
-                        var receiver = Server.connects.Find(x => x.name == msg.Receiver);
-                        receiver.SendMessage(msg);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Not found user: " + msg.Receiver);
-                    }
-                }
-                else
-                {
-                    foreach (var cl in Server.connects)
-                    {
-                        if (cl.name == null || cl.name == msg.Name)
-                            continue;
-                        cl.SendMessage(msg);
-                    }
+                    if (cl.name == null || cl.name == msg.Name)
+                        continue;
+                    cl.SendMessage(msg);
                 }
             }
+
         }
 
         private void GetDataEngine()
@@ -98,7 +91,7 @@ namespace Server
                     //// Convert byte array to string message. 		
                     string clientMessage = Encoding.ASCII.GetString(incommingData);
                     var msg = new Message();
-                    var ms = new MemoryStream(Encoding.ASCII.GetBytes(clientMessage) );
+                    var ms = new MemoryStream(Encoding.ASCII.GetBytes(clientMessage));
                     var ser = new DataContractJsonSerializer(msg.GetType());
                     msg = ser.ReadObject(ms) as Message;
 

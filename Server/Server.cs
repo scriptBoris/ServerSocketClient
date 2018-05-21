@@ -15,7 +15,7 @@ namespace Server
         public TcpListener listener;
         public static List<Connect> connects = new List<Connect>();
 
-        private bool   _enabled = true;
+        private bool _enabled = true;
         private Thread _thread;
 
         private Socket _socket;
@@ -45,7 +45,8 @@ namespace Server
         public void Shutdown()
         {
             _enabled = false;
-            //_thread.Abort();
+            _socket.Close();
+            _socket.Dispose();
         }
 
         //public void SendMessage(TcpClient client, string text)
@@ -63,12 +64,7 @@ namespace Server
                 var client = listener.AcceptTcpClient();
                 var connect = new Connect(client);
 
-                var msg = new Message
-                {
-                    Name = "Server",
-                    Text = "_reg",
-                };
-                connect.SendMessage(msg);
+                connect.SendMessage(new Message { Text = "Hello!", });
 
                 connects.Add(connect);
             }

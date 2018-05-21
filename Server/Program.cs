@@ -41,11 +41,12 @@ namespace Server
                 }
                 else
                 {
+                    msg.Name = "Server";
                     msg.Text = input;
                     foreach (var cl in Server.connects)
                     {
                         if (cl.name == null)
-                            continue;
+                            //continue;
                         cl.SendMessage(msg);
                     }
                 }

@@ -13,6 +13,10 @@ namespace Server.Models
     public class Message
     {
         [DataMember]
+        public int Request;
+        [DataMember]
+        public int Response;
+        [DataMember]
         public string Name;
         [DataMember]
         public string Text;
