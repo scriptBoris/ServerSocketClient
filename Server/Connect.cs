@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.Serialization.Json;
+using System.Web.Script.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,24 +13,15 @@ using Server.Models;
 
 namespace Server
 {
-    public enum ResponseTypes
-    {
-        Name,
-        Message,
-    }
-
     public class Connect
     {
-        public string name;
-        public ResponseTypes response;
-        public TcpClient tcpClient;
-
+        private TcpClient _tcpClient;
         private NetworkStream _stream;
         private Thread _thread;
 
         public Connect(TcpClient client)
         {
-            tcpClient = client;
+            _tcpClient = client;
             _stream = client.GetStream();
 
             _thread = new Thread(GetDataEngine);
@@ -39,39 +32,44 @@ namespace Server
         {
             byte[] buffer = new byte[text.Length];
             buffer = Encoding.ASCII.GetBytes(text);
-            tcpClient.Client.Send(buffer);
+            _tcpClient.Client.Send(buffer);
         }
+
         public void SendMessage(Message msg)
         {
             var json = new DataContractJsonSerializer(typeof(Message));
             json.WriteObject(_stream, msg);
         }
 
+        public void SendData(Object obj)
+        {
+
+            var fields = new List<FieldInfo>(obj.GetType().GetFields());
+            foreach (var field in fields)
+            {
+                if (field != null && field.Name == "JsonType")
+                {
+                    var sJson = (JsonTypes)field.GetValue(obj);
+                    var iJson = (int)sJson;
+                    var json = new JavaScriptSerializer().Serialize(obj);
+
+                    byte[] buffer = new byte[json.Length];
+                    buffer = Encoding.ASCII.GetBytes(iJson + json);
+                    _tcpClient.Client.Send(buffer);
+
+                    return;
+                }
+            }
+            throw new Exception("SendData not found field with JSON enum");
+        }
+
         private void EventSimple(Message msg)
         {
 
-            if (msg.Receiver != "")
-            {
-                try
-                {
-                    var receiver = Server.connects.Find(x => x.name == msg.Receiver);
-                    receiver.SendMessage(msg);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Not found user: " + msg.Receiver);
-                }
-            }
-            else
-            {
-                Console.WriteLine(msg.Name+": "+msg.Text);
-                foreach (var cl in Server.connects)
-                {
-                    if (cl.name == null || cl.name == msg.Name)
-                        continue;
-                    cl.SendMessage(msg);
-                }
-            }
+        }
+
+        private void Gets(Object o)
+        {
 
         }
 
@@ -80,7 +78,7 @@ namespace Server
             int length;
             byte[] buffer = new byte[1024];
 
-            while (tcpClient.Connected)
+            while (_tcpClient.Connected)
             {
                 length = _stream.Read(buffer, 0, buffer.Length);
                 if (length > 0)

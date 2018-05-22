@@ -12,6 +12,7 @@ namespace Server.Models
     [Serializable]
     public class Message
     {
+        public static JsonTypes JsonType = JsonTypes.Message;
         [DataMember]
         public int Request;
         [DataMember]
