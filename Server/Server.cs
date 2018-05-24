@@ -17,7 +17,6 @@ namespace Server
 
         private bool _enabled;
         private Thread _thread;
-
         private Socket _socket;
 
         //private TcpClient _client;
@@ -25,7 +24,7 @@ namespace Server
         //private int _port;
         //private string _url;
 
-        public Server(string ulr, int port)
+        public Server(string url, int port)
         {
             try
             {
@@ -36,31 +35,45 @@ namespace Server
                 _thread = new Thread(RegisterEngine);
                 _thread.Start();
                 _enabled = true;
-                Console.WriteLine("Socket: OK");
+                Console.WriteLine($"Socket TCP/IP {url}:{port}... OK");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Socket: FAIL\n"+ex.Message);
+                Console.WriteLine($"Socket TCP/IP {url}:{port}... FAIL");
+                Console.WriteLine($"{ex.Message}");
             }
         }
 
         public void Shutdown()
         {
+            if (connects.Count > 0)
+            {
+                foreach (var connect in connects) { connect.Disconnect(); }
+            }
+            listener.Stop();
             _enabled = false;
             _socket.Close();
             _socket.Dispose();
+            Console.WriteLine("Shutdown...");
+            Thread.Sleep(300);
         }
 
         private void RegisterEngine()
         {
             while (_enabled)
             {
-                var client = listener.AcceptTcpClient();
-                var connect = new Connect(client);
+                try
+                {
+                    var tcp = listener.AcceptTcpClient();
 
-                connect.SendData(new Message { Text = "Hello!", });
-
-                connects.Add(connect);
+                    var connect = new Connect(tcp);
+                    connect.SendData(new Message { Text = "Hello!", });
+                    connects.Add(connect);
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Server are abort input connect");
+                }
             }
         }
     }

@@ -18,7 +18,8 @@ namespace WCF
                 _host = new ServiceHost(typeof(WcfService), new Uri(url));
                 _host.AddServiceEndpoint(typeof(IWcfService), new WebHttpBinding(), "");
                 _host.Open();
-                Console.WriteLine("WCF: OK");
+                
+                Console.WriteLine($"WCF {_host.Description.Endpoints[0].Address}... OK");
             }
             catch (Exception ex)
             {

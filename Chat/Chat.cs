@@ -4,13 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Server.Models
+namespace Chat
 {
-    public enum JsonTypes
+    public class Chat
     {
-        Message,
-        MediaPlan,
-        MediaTemplate,
-        Command,
     }
 }

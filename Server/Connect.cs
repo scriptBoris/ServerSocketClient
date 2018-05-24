@@ -10,14 +10,18 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Server.Models;
+using System.Timers;
+using System.Net;
 
 namespace Server
 {
     public class Connect
     {
+        private string _ip;
         private TcpClient _tcpClient;
         private NetworkStream _stream;
         private Thread _thread;
+        private System.Timers.Timer _timer;
 
         public Connect(TcpClient client)
         {
@@ -26,24 +30,30 @@ namespace Server
 
             _thread = new Thread(GetDataEngine);
             _thread.Start();
+
+            _timer = new System.Timers.Timer(1000);
+            _timer.Elapsed += PingConnect;
+            _timer.Start();
+
+            _ip = ((IPEndPoint)_tcpClient.Client.RemoteEndPoint).Address.ToString();
+            Console.WriteLine(_ip+" has been connected");
         }
 
-        public void SendMessage(string text)
+        public void Disconnect()
         {
-            byte[] buffer = new byte[text.Length];
-            buffer = Encoding.ASCII.GetBytes(text);
-            _tcpClient.Client.Send(buffer);
-        }
-
-        public void SendMessage(Message msg)
-        {
-            var json = new DataContractJsonSerializer(typeof(Message));
-            json.WriteObject(_stream, msg);
+            _timer.Stop();
+            _timer.Dispose();
+            _tcpClient.Client.Disconnect(false);
+            _tcpClient.Client.Dispose();
+            _tcpClient.Close();
+            _stream.Close();
+            _stream.Dispose();
+            Server.connects.Remove(this);
+            Console.WriteLine(_ip+" has been disconnected");
         }
 
         public void SendData(Object obj)
         {
-
             var fields = new List<FieldInfo>(obj.GetType().GetFields());
             foreach (var field in fields)
             {
@@ -73,6 +83,30 @@ namespace Server
 
         }
 
+        /// <summary>
+        /// Отправляем клиентам 1 бит (ASCII строку "!") и таким образом убеждаемся что связь не потеряна.
+        /// TIMER - срабатывает с переодическим интервалом!
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="e"></param>
+        private void PingConnect(Object obj, EventArgs e)
+        {
+            try
+            {
+                string ping = "!";
+                byte[] buffer = new byte[1];
+                buffer = Encoding.ASCII.GetBytes(ping);
+                _tcpClient.Client.Send(buffer);
+            }
+            catch (Exception)
+            {
+                Disconnect();
+            }
+        }
+
+        /// <summary>
+        /// Цикл, в котором читаем стрим и таким образом узнаем о входящих данных.
+        /// </summary>
         private void GetDataEngine()
         {
             int length;
@@ -80,22 +114,27 @@ namespace Server
 
             while (_tcpClient.Connected)
             {
-                length = _stream.Read(buffer, 0, buffer.Length);
-                if (length > 0)
+                try
                 {
-                    var incommingData = new byte[length];
-                    Array.Copy(buffer, 0, incommingData, 0, length);
+                    length = _stream.Read(buffer, 0, buffer.Length);
+                    if (length > 0)
+                    {
+                        var incommingData = new byte[length];
+                        Array.Copy(buffer, 0, incommingData, 0, length);
 
-                    //// Convert byte array to string message. 		
-                    string clientMessage = Encoding.ASCII.GetString(incommingData);
-                    var msg = new Message();
-                    var ms = new MemoryStream(Encoding.ASCII.GetBytes(clientMessage));
-                    var ser = new DataContractJsonSerializer(msg.GetType());
-                    msg = ser.ReadObject(ms) as Message;
+                        //// Convert byte array to string message. 		
+                        string clientMessage = Encoding.ASCII.GetString(incommingData);
+                        var msg = new Message();
+                        var ms = new MemoryStream(Encoding.ASCII.GetBytes(clientMessage));
+                        var ser = new DataContractJsonSerializer(msg.GetType());
+                        msg = ser.ReadObject(ms) as Message;
 
-                    EventSimple(msg);
-
-                    //Console.WriteLine("Name: "+msg.Name+" Send: "+msg.Text);
+                        EventSimple(msg);
+                    }
+                }
+                catch (Exception)
+                {
+                    
                 }
             }
         }
