@@ -13,28 +13,27 @@ namespace Server
     {
         static void Main(string[] args)
         {
-            var svSocket = new Server("127.0.0.1", 8000);
-            var svWcf = new Wcf("http://localhost:9090");
+            var svSocket = new TcpServer("localhost", 8000);
+            //var svWcf = new Wcf("http://"+outIP+outPort);
 
-            string input = Console.ReadLine();
-            while (input != "qq")
+            Console.WriteLine("Сервер запущен\n");
+            Console.Write(">Сервер: ");
+            Console.ForegroundColor = ConsoleColor.White;
+            while (true)
             {
-                var msg = new Message
+                string inputText = Console.ReadLine();
+                Console.ResetColor();
+                if (inputText == null || inputText == "") continue;
+
+                if (inputText == "qq")
                 {
-                    Name = "Server",
-                    Text = input,
-                };
+                    svSocket.Shutdown();
+                    return;
+                }
 
-                if (Server.connects.Count > 0)
-                    foreach (var connect in Server.connects) { connect.SendData(msg); }
-                else
-                    Console.WriteLine("No one connected with server");
-
-                input = Console.ReadLine();
+                // Send message
+                svSocket.BroadcastMessage(inputText);
             }
-
-            svSocket.Shutdown();
-            Thread.Sleep(500);
         }
     }
 }

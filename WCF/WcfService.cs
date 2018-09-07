@@ -10,8 +10,17 @@ namespace WCF
     {
         public bool SetContent(string content)
         {
-
             return true;
+        }
+
+        public string Ping()
+        {
+            return "Hello world";
+        }
+
+        public string Echo(string echo)
+        {
+            return echo;
         }
     }
 }

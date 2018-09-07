@@ -44,9 +44,9 @@ namespace Client
 
             if (_server.Connected)
             {
-                _stream = _server.GetStream();
-                _thread = new Thread(DataEngine);
-                _thread.Start();
+                //_stream = _server.GetStream();
+                //_thread = new Thread(DataEngine);
+                //_thread.Start();
             }
 
             //string text = Console.ReadLine();
@@ -90,36 +90,37 @@ namespace Client
             _server.Client.Send(buffer);
             ///_stream.Write(buffer, 0, text.Length);
         }
-        public void SendMessage(Message msg)
+        public void SendMessage(object obj)
         {
-            var json = new DataContractJsonSerializer(typeof(Message));
-            json.WriteObject(_stream, msg);
+            var json = new DataContractJsonSerializer(typeof(object));
+            string data = 
+            json.WriteObject(_stream, data);
             //byte[] buffer = new byte[json.Length];
         }
 
         public void DataEngine()
         {
-            while (_server.Connected && _enabled)
-            {
-                if (_stream.DataAvailable)
-                {
-                    Byte[] buffer = new Byte[1024];
-                    int length = _stream.Read(buffer, 0, buffer.Length);
-                    var incommingData = new byte[length];
+            //while (_server.Connected && _enabled)
+            //{
+            //    if (_stream.DataAvailable)
+            //    {
+            //        Byte[] buffer = new Byte[1024];
+            //        int length = _stream.Read(buffer, 0, buffer.Length);
+            //        var incommingData = new byte[length];
 
-                    Array.Copy(buffer, 0, incommingData, 0, length);
-                    string serverMessage = Encoding.ASCII.GetString(incommingData);
+            //        Array.Copy(buffer, 0, incommingData, 0, length);
+            //        string serverMessage = Encoding.ASCII.GetString(incommingData);
 
-                    var msg = new Message();
-                    var ms = new MemoryStream(Encoding.ASCII.GetBytes(serverMessage));
-                    var ser = new DataContractJsonSerializer(msg.GetType());
-                    msg = ser.ReadObject(ms) as Message;
+            //        var msg = new Message();
+            //        var ms = new MemoryStream(Encoding.ASCII.GetBytes(serverMessage));
+            //        var ser = new DataContractJsonSerializer(msg.GetType());
+            //        msg = ser.ReadObject(ms) as Message;
 
-                    EventSimple(msg);
+            //        EventSimple(msg);
 
-                    //Console.WriteLine("Server say: " + serverMessage);
-                }
-            }
+            //        //Console.WriteLine("Server say: " + serverMessage);
+            //    }
+            //}
         }
     }
 }

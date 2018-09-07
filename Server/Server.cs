@@ -10,7 +10,7 @@ using Server.Models;
 
 namespace Server
 {
-    public class Server
+    public class TcpServer
     {
         public TcpListener listener;
         public static List<Connect> connects = new List<Connect>();
@@ -19,12 +19,7 @@ namespace Server
         private Thread _thread;
         private Socket _socket;
 
-        //private TcpClient _client;
-        //private static Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        //private int _port;
-        //private string _url;
-
-        public Server(string url, int port)
+        public TcpServer(string url, int port)
         {
             try
             {
@@ -35,17 +30,32 @@ namespace Server
                 _thread = new Thread(RegisterEngine);
                 _thread.Start();
                 _enabled = true;
-                Console.WriteLine($"Socket TCP/IP {url}:{port}... OK");
+                Console.WriteLine($"Запуск Socket TCP/IP {url}:{port}... OK");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Socket TCP/IP {url}:{port}... FAIL");
+                Console.WriteLine($"Запуск Socket TCP/IP {url}:{port}... Ошибка");
                 Console.WriteLine($"{ex.Message}");
             }
         }
 
+        public void BroadcastMessage(string message)
+        {
+            if (connects.Count > 0)
+            {
+                var msg = new Message { Name = "Сервер", Text = message};
+                foreach (var connect in connects)
+                    connect.SendData(msg);
+            }
+            else
+                ConsoleExtension.PrintBadInput("Не удалось отправить сообщение. На сервере нет ни одного подключения.");
+        }
+
         public void Shutdown()
         {
+            ConsoleExtension.ClearLine();
+            Console.ResetColor();
+            Console.WriteLine("Выключение...");
             if (connects.Count > 0)
             {
                 foreach (var connect in connects) { connect.Disconnect(); }
@@ -54,8 +64,7 @@ namespace Server
             _enabled = false;
             _socket.Close();
             _socket.Dispose();
-            Console.WriteLine("Shutdown...");
-            Thread.Sleep(300);
+            Thread.Sleep(100);
         }
 
         private void RegisterEngine()
@@ -67,12 +76,16 @@ namespace Server
                     var tcp = listener.AcceptTcpClient();
 
                     var connect = new Connect(tcp);
-                    connect.SendData(new Message { Text = "Hello!", });
+                    connect.SendData(new Message { Text = "Добро пожаловать на сервер!", });
                     connects.Add(connect);
                 }
-                catch (Exception)
+                catch (SocketException)
                 {
-                    Console.WriteLine("Server are abort input connect");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    ConsoleExtension.PrintError($"Оборвана попытка соединения: {ex.Message}");
                 }
             }
         }

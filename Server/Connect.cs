@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 using Server.Models;
 using System.Timers;
 using System.Net;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Server
 {
@@ -20,7 +22,6 @@ namespace Server
         private string _ip;
         private TcpClient _tcpClient;
         private NetworkStream _stream;
-        private Thread _thread;
         private System.Timers.Timer _timer;
 
         public Connect(TcpClient client)
@@ -28,15 +29,12 @@ namespace Server
             _tcpClient = client;
             _stream = client.GetStream();
 
-            _thread = new Thread(GetDataEngine);
-            _thread.Start();
-
-            _timer = new System.Timers.Timer(1000);
-            _timer.Elapsed += PingConnect;
+            _timer = new System.Timers.Timer(25);
+            _timer.Elapsed += GetDataEngine;
             _timer.Start();
 
             _ip = ((IPEndPoint)_tcpClient.Client.RemoteEndPoint).Address.ToString();
-            Console.WriteLine(_ip+" has been connected");
+            ConsoleExtension.PrintText(_ip + " подключился");
         }
 
         public void Disconnect()
@@ -48,8 +46,20 @@ namespace Server
             _tcpClient.Close();
             _stream.Close();
             _stream.Dispose();
-            Server.connects.Remove(this);
-            Console.WriteLine(_ip+" has been disconnected");
+            TcpServer.connects.Remove(this);
+            ConsoleExtension.PrintText(_ip + " отключился");
+        }
+        public void Disconnect(string msg)
+        {
+            _timer.Stop();
+            _timer.Dispose();
+            _tcpClient.Client.Disconnect(false);
+            _tcpClient.Client.Dispose();
+            _tcpClient.Close();
+            _stream.Close();
+            _stream.Dispose();
+            TcpServer.connects.Remove(this);
+            ConsoleExtension.PrintText(_ip + msg);
         }
 
         public void SendData(Object obj)
@@ -70,7 +80,7 @@ namespace Server
                     return;
                 }
             }
-            throw new Exception("SendData not found field with JSON enum");
+            ConsoleExtension.PrintError("Ошибка отправки данных. Отправляемый объект не имеет тип JsonType.");
         }
 
         private void EventSimple(Message msg)
@@ -105,38 +115,88 @@ namespace Server
         }
 
         /// <summary>
+        /// Извлекает данные из потока стрима
+        /// </summary>
+        /// <param name="data">Поток стрима представленный в виде строки</param>
+        /// <param name="dataOut">Тело JSON в виде строки</param>
+        /// <param name="transportDataOut">Системная строка, по ней определяют тип JSON объекта</param>
+        private void GetDataType(string data, out string dataOut, out string transportDataOut)
+        {
+            int space = 0;
+            string transportData = "";
+
+            while (space < 99)
+            {
+                if (data[space] == '{')
+                {
+                    transportData = data.Substring(0,space);
+                    break;
+                }
+                space++;
+            }
+
+            if (space > 0 && space < 99)
+            {
+                dataOut          = data.Substring(space);
+                transportDataOut = transportData;
+            }
+            else if (space == 0)
+            {
+                Console.WriteLine("Не удалось получить JSON объект");
+                dataOut          = "ERROR";
+                transportDataOut = "ERROR";
+            }
+            else
+            {
+                Console.WriteLine("Не верные данные");
+                dataOut          = "ERROR";
+                transportDataOut = "ERROR";
+            }
+        }
+
+        /// <summary>
         /// Цикл, в котором читаем стрим и таким образом узнаем о входящих данных.
         /// </summary>
-        private void GetDataEngine()
+        private void GetDataEngine(Object obj, EventArgs e)
         {
-            int length;
-            byte[] buffer = new byte[1024];
+            const int fixLength = 52;
+            byte[] buffer = new byte[fixLength];
 
-            while (_tcpClient.Connected)
+            try
             {
-                try
-                {
-                    length = _stream.Read(buffer, 0, buffer.Length);
-                    if (length > 0)
-                    {
-                        var incommingData = new byte[length];
-                        Array.Copy(buffer, 0, incommingData, 0, length);
+                _stream.Read(buffer, 0, fixLength);
+                //Array.Copy(buffer, 0, incFullData, 0, length);
+                ConsoleExtension.PrintText(NetworkExtension.GetModel(buffer) );
 
-                        //// Convert byte array to string message. 		
-                        string clientMessage = Encoding.ASCII.GetString(incommingData);
-                        var msg = new Message();
-                        var ms = new MemoryStream(Encoding.ASCII.GetBytes(clientMessage));
-                        var ser = new DataContractJsonSerializer(msg.GetType());
-                        msg = ser.ReadObject(ms) as Message;
+                //dynamic jobj = JObject.Parse();
+                //if (length > 0)
+                //{
+                //    string transportData = "";
+                //    string jsonData   = "";
+                //    GetDataType(stringData, out jsonData, out transportData);
 
-                        EventSimple(msg);
-                    }
-                }
-                catch (Exception)
-                {
-                    
-                }
+                //    var msg = new JavaScriptSerializer().Deserialize<Message>(jsonData);
+                //    Console.WriteLine($"{msg.Name}: {msg.Text}");
+                //}
             }
+            catch (Exception ex)
+            {
+                ConsoleExtension.PrintError($"Ошибка при попытке получить данные от {_ip}:");
+                ConsoleExtension.PrintError(ex.Message);
+            }
+        }
+
+        private void OnReceivedMessage(Message msgIn)
+        {
+            string text = $"{msgIn.Name}: {msgIn.Text}";
+            Console.WriteLine(text);
+        }
+
+        private void ExtractData(JsonTypes jsonTypes, string data)
+        {
+            var obj = new JavaScriptSerializer().Deserialize<Message>(data);
+
+            OnReceivedMessage(obj);
         }
     }
 }
