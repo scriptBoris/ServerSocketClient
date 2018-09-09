@@ -7,17 +7,20 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using Server.Models;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Server
 {
     public class TcpServer
     {
         public TcpListener listener;
-        public static List<Connect> connects = new List<Connect>();
+        public static List<Connect> Connections = new List<Connect>();
 
         private bool _enabled;
         private Thread _thread;
         private Socket _socket;
+
 
         public TcpServer(string url, int port)
         {
@@ -27,9 +30,9 @@ namespace Server
                 listener = new TcpListener(IPAddress.Any, port);
                 listener.Start();
 
+                _enabled = true;
                 _thread = new Thread(RegisterEngine);
                 _thread.Start();
-                _enabled = true;
                 Console.WriteLine($"Запуск Socket TCP/IP {url}:{port}... OK");
             }
             catch (Exception ex)
@@ -41,10 +44,10 @@ namespace Server
 
         public void BroadcastMessage(string message)
         {
-            if (connects.Count > 0)
+            if (Connections.Count > 0)
             {
                 var msg = new Message { Name = "Сервер", Text = message};
-                foreach (var connect in connects)
+                foreach (var connect in Connections)
                     connect.SendData(msg);
             }
             else
@@ -53,15 +56,13 @@ namespace Server
 
         public void Shutdown()
         {
-            ConsoleExtension.ClearLine();
-            Console.ResetColor();
-            Console.WriteLine("Выключение...");
-            if (connects.Count > 0)
+            ConsoleExtension.PrintText("Выключение");
+            for (int i = Connections.Count; i>0; i--)
             {
-                foreach (var connect in connects) { connect.Disconnect(); }
+                Connections[i-1].Disconnect("Отключен");
             }
-            listener.Stop();
             _enabled = false;
+            listener.Stop();
             _socket.Close();
             _socket.Dispose();
             Thread.Sleep(100);
@@ -74,19 +75,40 @@ namespace Server
                 try
                 {
                     var tcp = listener.AcceptTcpClient();
-
                     var connect = new Connect(tcp);
-                    connect.SendData(new Message { Text = "Добро пожаловать на сервер!", });
-                    connects.Add(connect);
+                    connect.EventUpdate += ReceiveMessage;
+                    Connections.Add(connect);
                 }
-                catch (SocketException)
+                catch (SocketException) 
                 {
+                    // Исключение, когда выключается listener
                     return;
                 }
                 catch (Exception ex)
                 {
                     ConsoleExtension.PrintError($"Оборвана попытка соединения: {ex.Message}");
                 }
+            }
+        }
+
+        private void ReceiveMessage(object obj, EventNetworkUpdate e)
+        {
+            dynamic get = JsonConvert.DeserializeObject(e.Data);
+            if ((JsonTypes)get.JsonType == JsonTypes.Message)
+            {
+                var msg = JsonConvert.DeserializeObject<Message>(e.Data);
+
+                if (msg.Id == null)
+                    return;
+
+                foreach(var connect in Connections)
+                {
+                    if (connect.client.Id == msg.Id)
+                        continue;
+                    
+                    connect.SendData(msg);
+                }
+                ConsoleExtension.PrintMessage(msg.Name, msg.Text);
             }
         }
     }

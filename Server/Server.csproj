@@ -50,8 +50,12 @@
     <Compile Include="Chat\Client.cs" />
     <Compile Include="Connect.cs" />
     <Compile Include="ConsoleExtension.cs" />
+    <Compile Include="EventNetworkUpdate.cs" />
+    <Compile Include="Messager.cs" />
+    <Compile Include="Models\ActResult.cs" />
     <Compile Include="Models\JsonTypes.cs" />
     <Compile Include="Models\Message.cs" />
+    <Compile Include="Models\RegisterData.cs" />
     <Compile Include="NetworkExtension.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -60,12 +64,6 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\WCF\WCF.csproj">
-      <Project>{96628d17-3234-4ce4-b1e0-f231be85d539}</Project>
-      <Name>WCF</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

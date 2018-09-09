@@ -8,12 +8,15 @@ namespace Client
 {
     public class User
     {
-        public readonly string name;
-
+        /// <summary>
+        ///     GUID
+        /// </summary>
+        public string Id { get; set; }
+        public string Name { get; }
 
         public User(string name)
         {
-            this.name = name;
+            Name = name;
         }
     }
 }

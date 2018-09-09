@@ -1,19 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Server.Chat
 {
-    internal class Client : Chat
+    public class Client
     {
-        internal string _name;
-
-        internal Client(string name)
+        public Client()
         {
-            _name = name;
-            Clients.Add(this);
+
         }
+
+        public Client(string id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
+
+        public string Id { get; set; }
+        public string Name { get; set; }
     }
 }

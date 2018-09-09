@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using Server.Models;
+using Client.Models;
 
 namespace Client
 {
@@ -15,45 +15,38 @@ namespace Client
 
         static void Main(string[] args)
         {
-            string input = "";
-            byte[] buffer;
+            Console.WriteLine("Введите ваше имя:");
+            ConsoleExtension.UserName = Console.ReadLine();
 
-            Console.WriteLine("Write your name");
-            User user = new User(Console.ReadLine());
-
-            try
+            User user = new User(ConsoleExtension.UserName);
+            var connect = new Connect("localhost", 8000, user);
+            ConsoleExtension.ReadLineDrow();
+            while (true)
             {
-                var connect = new Connect("localhost", 8000, user);
-                Console.WriteLine("Client are ready");
-
-                input = Console.ReadLine();
-                while (input != "qq")
+                string inputText = ConsoleExtension.ReadLine();
+                if (inputText == "qq")
                 {
-                    var message = new Message { Name = user.name };
-
-                    var split = input.Split('_');
-
-                    if (split != null  &&  split.Length > 1)
-                    {
-                        message.Receiver = split[0];
-                        message.Text = split[1];
-                        connect.SendMessage(message);
-                    }
-                    else
-                    {
-                        message.Text = input;
-                        connect.SendMessage(message);
-                    }
-
-                    input = Console.ReadLine();
+                    return;
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                Console.WriteLine("Failed connect, try again");
-                Console.ReadKey();
-                Main(null);
+
+                var message = new Message { Name = user.Name, Text = inputText, Id = user.Id };
+                connect.SendData(message);
+
+                //var split = inputText.Split('_');
+
+                //if (split != null  &&  split.Length > 1)
+                //{
+                //    message.Receiver = split[0];
+                //    message.Text = split[1];
+                //    connect.SendData(message);
+                //    // send data
+                //}
+                //else
+                //{
+                //    message.Text = inputText;
+                //    connect.SendData(message);
+                //    // send data
+                //}
             }
         }
     }

@@ -9,19 +9,24 @@ using Newtonsoft.Json;
 
 namespace Server.Models
 {
-    [DataContract]
     [Serializable]
-    public class Message
+    public class RegisterData
     {
+        [JsonRequired]
         [DataMember]
-        public static JsonTypes JsonType = JsonTypes.Message;
+        public static JsonTypes JsonType = JsonTypes.RegisterData;
         [DataMember]
-        public string Id;
+        public int Code { get; set; }
+        [DataMember]
+        public string Description { get; set; }
         [DataMember]
         public string Name;
         [DataMember]
-        public string Text;
-        [DataMember]
-        public string Receiver;
+        public string Id;
+
+        //public RegisterData(int code, string description) : base(code, description)
+        //{
+
+        //}
     }
 }

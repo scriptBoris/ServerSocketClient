@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Server
 {
-    static internal class NetworkExtension
+    static public class NetworkExtension
     {
         static public string GetModel(byte[] buffer)
         {
@@ -20,6 +20,25 @@ namespace Server
                 model += Encoding.UTF8.GetString(new[] { buffer[i] });
             }
             return model;
+        }
+
+        static public string GetDataLength(string json)
+        {
+            int length = json.Length;
+            if (length > 10000)
+            {
+                return null;
+            }
+            var str = new StringBuilder(5);
+            var lengthStr = new StringBuilder(length.ToString() );
+
+            for (int i = 5; (lengthStr.Length < i); i--)
+            {
+                str.Append('0');
+            }
+            str.Append(lengthStr);
+
+            return str.ToString();
         }
     }
 }

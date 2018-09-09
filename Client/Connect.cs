@@ -6,8 +6,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Server.Models;
+using Client.Models;
 using System.Runtime.Serialization.Json;
+using Newtonsoft.Json;
+using Server;
 
 namespace Client
 {
@@ -19,108 +21,160 @@ namespace Client
 
     public class Connect
     {
-        public User user;
+        public User User;
         public RequestType request;
-
-        //public StringBuilder String = new StringBuilder();
 
         public readonly string url;
         public readonly int port;
 
-        private bool _enabled = true;
+        private bool _networkEnabled;
         private TcpClient _server;
-        private NetworkStream _stream;
-        private Thread _thread;
+        private StreamReader _read;
+        private StreamWriter _write;
+        private System.Timers.Timer _timer;
+        private System.Timers.Timer _timerRegister;
+
+        public NetworkDataHandler EventUpdate;
+        public delegate void NetworkDataHandler(object sender, EventNetworkUpdate e);
 
         //private Socket    _socket;
 
-        public Connect(string url, int port, User newUser)
+        public Connect(string url, int port, User user)
         {
             //_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             //_socket.Connect(IPAddress.Parse(url), port);
-            user = newUser;
+            User = user;
             _server = new TcpClient();
-            _server.Connect(url, port);
+
+            try
+            {
+                _server.Connect(url, port);
+            }
+            catch (SocketException)
+            {
+                Console.WriteLine($"Не удалось подключится к {url}: {port}");
+                return;
+            }
 
             if (_server.Connected)
             {
-                //_stream = _server.GetStream();
-                //_thread = new Thread(DataEngine);
-                //_thread.Start();
+                _networkEnabled = true;
+                _read = new StreamReader(_server.GetStream());
+                _write = new StreamWriter(_server.GetStream());
+
+                _timer = new System.Timers.Timer(25);
+                _timer.Elapsed += DataEngine;
+                _timer.Start();
+
+                var registerData = new RegisterData { Name = user.Name };
+                SendData(registerData);
+
+                EventUpdate += ReceiveMessage;
+                EventUpdate += TryRegister;
             }
-
-            //string text = Console.ReadLine();
-            //byte[] buffer = Encoding.ASCII.GetBytes(text);
-
-            //socket.Send(buffer);
-            //Console.ReadLine();
         }
 
-        private void EventSimple(Message msg)
+        public void TryRegister(object obj, EventNetworkUpdate e)
         {
-            if (msg.Name == "Server")
+            dynamic get = JsonConvert.DeserializeObject(e.Data);
+            if ((JsonTypes)get.JsonType == JsonTypes.RegisterData)
             {
-                if (msg.Text == "_reg")
+                var response = JsonConvert.DeserializeObject<RegisterData>(e.Data);
+
+                if (response.Code == 0)
                 {
-                    var msgOut = new Message
-                    {
-                        Name = user.name,
-                        Text = user.name,
-                    };
-                    SendMessage(msgOut);
-                    return;
+                    User.Id = response.Id;
+                    ConsoleExtension.PrintText("Регистрация на сервере успешно произведена.");
                 }
                 else
-                    Console.WriteLine("Server say: " + msg.Text);
+                {
+                    ConsoleExtension.PrintError("Не удалось зарегистрироваться на сервере: " + response.Description);
+                }
+                EventUpdate -= TryRegister;
             }
-            else
+        }
+
+        public void SendData(object obj)
+        {
+            if (_networkEnabled == false)
             {
-                Console.WriteLine(msg.Name + ": " + msg.Text);
+                ConsoleExtension.PrintError("Не удалось отправить сообщение. Соединение с сервером отсутствует.");
+                return;
             }
-            //else if (input == "Server say: ")
-            //{
 
-            //}
+            string json = JsonConvert.SerializeObject(obj);
+            //string length = NetworkExtension.GetDataLength(json);
+            //byte[] buffer = new byte[json.Length + length.Length];
+
+            //buffer = Encoding.ASCII.GetBytes(length + json);
+            //_stream.Flush();
+            //_stream.Write(buffer, 0, 5 + json.Length);
+            //_stream.Flush();
+
+            _write.WriteLine(json);
+            _write.Flush();
         }
 
-        public void SendMessage(string text)
+        public void DataEngine(object obj, EventArgs e)
         {
-            byte[] buffer = new byte[text.Length];
-            buffer = Encoding.ASCII.GetBytes(text);
-            _server.Client.Send(buffer);
-            ///_stream.Write(buffer, 0, text.Length);
+            if (_networkEnabled == false) return;
+
+            string data = null;
+
+            try
+            {
+                data = GetData(_read);
+                if (data == null)
+                    return;
+                else if (data == "") //TODO Не нашел лучшего способа определения диссконекта, когда сервер использует программное отключение
+                    ThrowDisconnect("Разрыв соединения с сервером");
+                else
+                    EventUpdate?.Invoke(this, new EventNetworkUpdate(data));
+            }
+            catch (IOException)
+            {
+                ThrowDisconnect("Разрыв соединения с сервером");
+            }
         }
-        public void SendMessage(object obj)
+
+        /// <summary>
+        ///     Отключает клиент от сервера
+        /// </summary>
+        private void ThrowDisconnect(string msg)
         {
-            var json = new DataContractJsonSerializer(typeof(object));
-            string data = 
-            json.WriteObject(_stream, data);
-            //byte[] buffer = new byte[json.Length];
+            if (_networkEnabled == false) return;
+
+            _networkEnabled = false;
+            _timer.Stop();
+            _timer.Dispose();
+
+            _server.Close();
+
+            _read.Close();
+            _read.Dispose();
+
+            _write.Close();
+            _write.Dispose();
+
+            ConsoleExtension.PrintError(msg);
         }
 
-        public void DataEngine()
+        public void ReceiveMessage(object obj, EventNetworkUpdate e)
         {
-            //while (_server.Connected && _enabled)
-            //{
-            //    if (_stream.DataAvailable)
-            //    {
-            //        Byte[] buffer = new Byte[1024];
-            //        int length = _stream.Read(buffer, 0, buffer.Length);
-            //        var incommingData = new byte[length];
+            dynamic get = JsonConvert.DeserializeObject(e.Data);
+            if ((JsonTypes)get.JsonType == JsonTypes.Message)
+            {
+                var msg = JsonConvert.DeserializeObject<Message>(e.Data);
+                ConsoleExtension.PrintMessage(msg.Name, msg.Text);
+            }
+        }
 
-            //        Array.Copy(buffer, 0, incommingData, 0, length);
-            //        string serverMessage = Encoding.ASCII.GetString(incommingData);
+        private string GetData(StreamReader stream)
+        {
+            var builder = new StringBuilder();
+            builder.Append(stream.ReadLine());
 
-            //        var msg = new Message();
-            //        var ms = new MemoryStream(Encoding.ASCII.GetBytes(serverMessage));
-            //        var ser = new DataContractJsonSerializer(msg.GetType());
-            //        msg = ser.ReadObject(ms) as Message;
-
-            //        EventSimple(msg);
-
-            //        //Console.WriteLine("Server say: " + serverMessage);
-            //    }
-            //}
+            return builder.ToString();
         }
     }
 }

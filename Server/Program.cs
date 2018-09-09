@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using WCF;
 
 namespace Server
 {
@@ -15,19 +14,19 @@ namespace Server
         {
             var svSocket = new TcpServer("localhost", 8000);
             //var svWcf = new Wcf("http://"+outIP+outPort);
-
+            ConsoleExtension.ServerName = "Сервер";
             Console.WriteLine("Сервер запущен\n");
-            Console.Write(">Сервер: ");
-            Console.ForegroundColor = ConsoleColor.White;
+            ConsoleExtension.ReadLineDrow();
             while (true)
             {
-                string inputText = Console.ReadLine();
-                Console.ResetColor();
+                string inputText = ConsoleExtension.ReadLine();
+
                 if (inputText == null || inputText == "") continue;
 
                 if (inputText == "qq")
                 {
                     svSocket.Shutdown();
+                    ConsoleExtension.ClearLine();
                     return;
                 }
 

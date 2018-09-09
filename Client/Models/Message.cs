@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using Newtonsoft.Json;
 
-namespace Server.Models
+namespace Client.Models
 {
     [DataContract]
     [Serializable]

@@ -7,21 +7,23 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using Newtonsoft.Json;
 
-namespace Server.Models
+namespace Client.Models
 {
     [DataContract]
     [Serializable]
-    public class Message
+    public class RegisterData
     {
+        [JsonRequired]
         [DataMember]
-        public static JsonTypes JsonType = JsonTypes.Message;
-        [DataMember]
-        public string Id;
+        public static JsonTypes JsonType = JsonTypes.RegisterData;
         [DataMember]
         public string Name;
         [DataMember]
-        public string Text;
+        public string Id;
         [DataMember]
-        public string Receiver;
+        public int Code { get; set; }
+        [DataMember]
+        public string Description { get; set; }
+
     }
 }

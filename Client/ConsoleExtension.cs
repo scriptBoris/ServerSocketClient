@@ -4,16 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Server
+namespace Client
 {
     public static class ConsoleExtension
     {
-        public static string ServerName;
+        public static string UserName;
 
         public static void ReadLineDrow()
         {
             Console.ResetColor();
-            Console.Write($"{ServerName}: ");
+            Console.Write($"{UserName}: ");
             Console.ForegroundColor = ConsoleColor.White;
         }
 
