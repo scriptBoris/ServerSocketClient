@@ -12,8 +12,8 @@ namespace Server
     {
         static void Main(string[] args)
         {
+            //TODO устанить утечку памяти
             var svSocket = new TcpServer("localhost", 8000);
-            //var svWcf = new Wcf("http://"+outIP+outPort);
             ConsoleExtension.ServerName = "Сервер";
             Console.WriteLine("Сервер запущен\n");
             ConsoleExtension.ReadLineDrow();
