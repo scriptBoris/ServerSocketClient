@@ -83,12 +83,19 @@ namespace Server
                 ConsoleExtension.PrintText($"{client.Name ?? _ip}" + " " + msg);
         }
 
-        public void SendData(dynamic obj)
+        public void SendData(object obj)
         {
             string json = JsonConvert.SerializeObject(obj);
 
             _write.WriteLine(json);
-            _write.Flush();
+            try
+            {
+                _write.Flush();
+            }
+            catch (Exception ex)
+            {
+                ConsoleExtension.PrintError("Не известная ошибка при попытке отправить сообщение: " + ex.Message);
+            }
         }
         
         /// <summary>
