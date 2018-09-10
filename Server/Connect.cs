@@ -55,7 +55,7 @@ namespace Server
             EventUpdate += GetDataRegister;
 
             _ip = ((IPEndPoint)_tcpClient.Client.RemoteEndPoint).Address.ToString();
-            ConsoleExtension.PrintText(_ip + " подключился");
+            //ConsoleExtension.PrintText(_ip + " подключился");
         }
 
         public void Disconnect(string msg)
@@ -80,7 +80,7 @@ namespace Server
             TcpServer.Connections.Remove(this);
 
             if (msg != null)
-                ConsoleExtension.PrintText(_ip + " " + msg);
+                ConsoleExtension.PrintText($"{client.Name ?? _ip}" + " " + msg);
         }
 
         public void SendData(dynamic obj)
@@ -112,7 +112,7 @@ namespace Server
             }
             catch (IOException)
             {
-                Disconnect("Разрыв соединения с клиентом.");
+                Disconnect("разрыв соединения.");
             }
         }
 
@@ -146,7 +146,7 @@ namespace Server
                 }
                 else
                 {
-                    SendData(new RegisterData { Code = 1, Description = "Пользователь с таким именем уже существует."} );
+                    SendData(new RegisterData { Code = 1, Description = "пользователь с таким именем уже существует."} );
                     Disconnect(null);
                 }
                 EventUpdate -= GetDataRegister;
@@ -157,7 +157,7 @@ namespace Server
         private void WaitingRegister(object obj, EventArgs e)
         {
             if (client.Id == null)
-                Disconnect("Разрыв соединения с не зарегистрированным клиентом.");
+                Disconnect("разрыв соединения с не зарегистрированным клиентом.");
             _timerRegister.Stop();
 
             EventUpdate -= GetDataRegister;

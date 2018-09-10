@@ -15,11 +15,14 @@ namespace Client
 
         static void Main(string[] args)
         {
+            Console.WriteLine("Введите адрес подключения (например: \"192.168.1.28:8000\")");
+            string adress = Console.ReadLine();
             Console.WriteLine("Введите ваше имя:");
             ConsoleExtension.UserName = Console.ReadLine();
 
             User user = new User(ConsoleExtension.UserName);
-            var connect = new Connect("localhost", 8000, user);
+            var split = adress.Split(':');
+            var connect = new Connect(split[0], Convert.ToInt32(split[1]), user);
             ConsoleExtension.ReadLineDrow();
             while (true)
             {
